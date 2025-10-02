@@ -83,7 +83,7 @@ CREATE TABLE Staging ( -- Create a temporary table to allow the data to be read 
 
 # Load Data into Staging Table
 
-LOAD DATA LOCAL INFILE '/Users/joshlegrice/Desktop/University/Masters/Data Systems/Coursework/COMM108_Data_Coursework.csv'
+LOAD DATA LOCAL INFILE '/Users/joshlegrice/Desktop/University/Masters/Data Systems/Coursework/data/COMM108_Data_Coursework.csv'
 INTO TABLE Staging -- load the data from the above location into the temporary table
 FIELDS TERMINATED BY ',' -- defines that the columns are delimated by a comma
 ENCLOSED BY '"' 
@@ -149,7 +149,7 @@ SELECT DISTINCT soilID, farmID, ph_level, nitrogen_level, phosphorus_level, pota
 FROM Staging;
 
 # Resources
-INSERT INTO Resources (resource_type) --insert resource_type into the resources table
+INSERT INTO Resources (resource_type) -- insert resource_type into the resources table
 SELECT DISTINCT resource_type -- select unique values from resource_type from staging
 FROM Staging
 WHERE resource_type IS NOT NULL; -- make sure resource type isn't null
@@ -199,7 +199,7 @@ CREATE TABLE Crop_Initiative (
     sustainabilityID INT,
     farmID INT,
     crop_yield INT,
-    --- Primary Key ensures each crop-initiative-farm combination is unique
+    -- Primary Key ensures each crop-initiative-farm combination is unique
     PRIMARY KEY (cropID, sustainabilityID, farmID),
     FOREIGN KEY (cropID) REFERENCES Crops(cropID),
     FOREIGN KEY (sustainabilityID, farmID) REFERENCES Initiatives(sustainabilityID, farmID)
