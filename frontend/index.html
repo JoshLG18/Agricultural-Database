@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agriculture Database Access</title>
+
+  <!-- Code to create all the object styles for the website-->
+  <style>
+    /* Creates the formating for the entire website*/
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+    }
+    /* Creates the styling for the title*/
+    .title {
+      background: linear-gradient(to right, #4CAF50, #2E7D32);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 42px;
+      font-weight: bold;
+      border-bottom: 4px solid #1B5E20;
+    }
+    /* Creates the styling for the container forms a box around the items*/
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    }
+    /* Creates the styling for the subtitle*/
+    .subtitle {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0 10px;
+      color: #2E7D32;
+    }
+    /* Creates the styling for the form*/
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      font-size: 16px;
+      font-family: monospace;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      resize: vertical;
+      outline: none;
+    }
+    /* Creates the styling for when the textarea is clicked - border will change colour*/
+    textarea:focus {
+      border-color: #4CAF50;
+    }
+
+    /* Creates the styling for the button*/
+    button {
+      margin-top: 15px;
+      padding: 12px 25px;
+      font-size: 16px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    /* Creates the styling for when the button is hovered over*/
+    button:hover {
+      background: #45a049;
+    }
+    /* Creates the styling for the output box*/
+    #output-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+  </style>
+
+</head>
+<body>
+  <div class="title">🌱 Agriculture Database Access</div>
+
+  <div class="container"> <!-- Uses the container format so everything in these tags is in a box -->
+    <div class="subtitle">Enter an SQL Query</div> <!-- Uses the class subtitle to format the text enter SQL Query-->
+    <form id="query-form"> <!-- Opens the query form box -->
+      <textarea id="sql-input" placeholder="e.g. SELECT * FROM Farm;"></textarea> <!-- adds place holder text inside the input box -->
+      <br>
+      <button type="submit">Run Query</button>
+    </form>
+
+    <div class="subtitle">Output</div>
+    <div id="output-box">Query results will appear here...</div>
+  </div>
+
+</body>
+</html>
