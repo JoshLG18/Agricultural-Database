@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,6 +6,9 @@
 
   <!-- Code to create all the object styles for the website-->
   <style>
+    .hidden { /* Allows things to be hidden untl shown*/ 
+      display: none;
+    }
     /* Creates the formating for the entire website*/
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -38,6 +41,52 @@
       font-weight: bold;
       margin: 20px 0 10px;
       color: #2E7D32;
+    }
+    /* Creates the styling for the form*/
+    .dropdown {
+      position: relative;
+    }
+
+    /* Style the dropdown button */
+    .dropbtn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 16px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Dropdown content */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 200px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    }
+
+    /* Links inside dropdown content */
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+
+    /* Change color of dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #f1f1f1
+    }
+
+    /* Show the dropdown content on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    /* Change background color of dropdown button on hover */
+    .dropdown:hover .dropbtn {
+      background-color: #3e8e41;
     }
     /* Creates the styling for the form*/
     textarea {
@@ -89,18 +138,157 @@
 </head>
 <body>
   <div class="title">🌱 Agriculture Database Access</div>
-
   <div class="container"> <!-- Uses the container format so everything in these tags is in a box -->
+    <div class="subtitle">Which Request Do You Want To Perform?</div>
+    <div class="dropdown">
+      <button class="dropbtn"> Requests</button>
+      <div class="dropdown-content">
+        <a href="#" data-target="GET">GET</a>
+        <a href="#" data-target="POST">POST</a>
+        <a href="#" data-target="PUT">PUT</a>
+        <a href="#" data-target="PATCH">PATCH</a>
+        <a href="#" data-target="DELETE">DELETE</a>
+        <a href="#" data-target="FULLQUERY">FULL QUERY</a>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Interface for the GET request -->
+  <section id="GET" class="hidden">
+    <div class="container">
+      <div class="subtitle">Enter Your GET Request</div>
+        <form id="get-form">
+          <label>Table:</label>
+            <input type="text" id="get-table" placeholder="e.g. Farm"><br><br>
+      
+          <label>ID (optional):</label>
+            <input type="text" id="get-id" placeholder="e.g. 1"><br><br>
+    
+        <button type="submit">Run GET</button>
+        </form>
+    </div>
+  </section>
+
+  <!-- Interface for the POST request -->
+  <section id="POST" class="hidden">
+    <div class="container">
+      <div class="subtitle">Enter Your POST Request</div>
+        <form id="get-form">
+          <label>Table:</label>
+            <input type="text" id="get-table" placeholder="e.g. Farm"><br><br>
+
+          <label for="post-data">Data (JSON):</label><br>
+            <textarea id="post-data" name="data" rows="6" cols="40" placeholder='{"name": "New Farm", "location": "New Location}'></textarea><br><br>    
+        <button type="submit">Run GET</button>
+        </form>
+    </div>
+  </section>
+
+  <!-- Interface for the PUT request -->
+  <section id="PUT" class="hidden">
+  <div class="container">
+    <div class="subtitle">Enter Your PUT Request</div>
+    <form id="put-form">
+
+      <!-- Table input -->
+      <label for="put-table">Table:</label>
+      <input type="text" id="put-table" placeholder="e.g. Farm"><br><br>
+
+      <!-- ID to replace -->
+      <label for="put-id">Row ID to Replace:</label>
+      <input type="text" id="put-id" placeholder="e.g. 1"><br><br>
+
+      <!-- New JSON data -->
+      <label for="put-data">New Data (JSON):</label><br>
+      <textarea id="put-data" name="data" rows="6" cols="40" placeholder='{"name": "Updated Farm", "size": 200}'></textarea><br><br>
+
+      <!-- Submit -->
+      <button type="submit">Run PUT</button>
+    </form>
+  </div>
+</section>
+
+<!-- Interface for the PATCH request -->
+<section id="PATCH" class="hidden">
+  <div class="container">
+    <div class="subtitle">Enter Your PATCH Request</div>
+    <form id="patch-form">
+
+      <!-- Table input -->
+      <label for="patch-table">Table:</label>
+      <input type="text" id="patch-table" placeholder="e.g. Farm"><br><br>
+
+      <!-- ID to update -->
+      <label for="patch-id">Row ID to Update:</label>
+      <input type="text" id="patch-id" placeholder="e.g. 1"><br><br>
+
+      <!-- Partial JSON data -->
+      <label for="patch-data">Data to Update (JSON):</label><br>
+      <textarea id="patch-data" name="data" rows="6" cols="40" placeholder='{"size": 250}'></textarea><br><br>
+
+      <!-- Submit -->
+      <button type="submit">Run PATCH</button>
+    </form>
+  </div>
+</section>
+
+<!-- Interface for the DELETE request -->
+<section id="DELETE" class="hidden">
+  <div class="container">
+    <div class="subtitle">Enter Your DELETE Request</div>
+    <form id="delete-form">
+
+      <!-- Table input -->
+      <label for="delete-table">Table:</label>
+      <input type="text" id="delete-table" placeholder="e.g. Farm"><br><br>
+
+      <!-- ID to delete -->
+      <label for="delete-id">Row ID to Delete:</label>
+      <input type="text" id="delete-id" placeholder="e.g. 1"><br><br>
+
+      <!-- Submit -->
+      <button type="submit">Run DELETE</button>
+    </form>
+  </div>
+</section>
+
+  <!-- Interface for the sql querying -->
+<section id="FULLQUERY" class="hidden"> <!-- Uses the container format so everything in these tags is in a box -->
+  <div class="container">
     <div class="subtitle">Enter an SQL Query</div> <!-- Uses the class subtitle to format the text enter SQL Query-->
     <form id="query-form"> <!-- Opens the query form box -->
       <textarea id="sql-input" placeholder="e.g. SELECT * FROM Farm;"></textarea> <!-- adds place holder text inside the input box -->
       <br>
       <button type="submit">Run Query</button>
     </form>
+  </div>
+</section>
 
+  <!-- Interface for the Output -->
+  <div class="container">
     <div class="subtitle">Output</div>
     <div id="output-box">Query results will appear here...</div>
   </div>
 
 </body>
 </html>
+
+ <script>
+    // Grab all sections
+    const sections = document.querySelectorAll("#GET, #POST, #PUT, #PATCH, #DELETE,#FULLQUERY");
+
+    // Attach click handler to dropdown links
+    document.querySelectorAll(".dropdown-content a").forEach(link => {
+      link.addEventListener("click", function (e) {
+        e.preventDefault(); // stop page reload
+
+        // Hide all sections
+        sections.forEach(section => section.classList.add("hidden"));
+
+        // Show selected section
+        const targetId = this.getAttribute("data-target");
+        document.getElementById(targetId).classList.remove("hidden");
+      });
+    });
+  </script>
