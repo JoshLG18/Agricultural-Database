@@ -34,6 +34,7 @@ CREATE TABLE Soils ( -- creates a table for soils data
     FOREIGN KEY (farmID) REFERENCES Farm(farmID) -- sets the farmID as a FK from the farm table as 1 farm has one soil type
 );
 
+
 # Resources table
 CREATE TABLE Resources ( -- create a table for the resources
     resourceID INT AUTO_INCREMENT PRIMARY KEY, -- creates a column called resourceID that can't be empty and is the primary key
