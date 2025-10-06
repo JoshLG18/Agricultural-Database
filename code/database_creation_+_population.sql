@@ -14,7 +14,7 @@ CREATE TABLE Farm ( -- creates a table called farm
 );
 
 # Crops Table
-CREATE TABLE Crops ( -- creates a crops table
+CREATE TABLE Crop ( -- creates a crops table
     cropID INT NOT NULL PRIMARY KEY, -- creates a column called cropID that can't be empty and is the primary key
     farmID INT NOT NULL, -- adds a column called farmID which can't be null
     crop_name VARCHAR(255), -- adds a column for the crop_name
@@ -24,7 +24,7 @@ CREATE TABLE Crops ( -- creates a crops table
 );
 
 # Soil Table
-CREATE TABLE Soils ( -- creates a table for soils data
+CREATE TABLE Soil ( -- creates a table for soils data
     soilID INT NOT NULL PRIMARY KEY, -- creates a column called soilID that can't be empty and is the primary key
     farmID INT NOT NULL, -- adds a column called farmID which can't be null
     ph_level DECIMAL(3,1), -- creates a column for ph level
@@ -36,13 +36,13 @@ CREATE TABLE Soils ( -- creates a table for soils data
 
 
 # Resources table
-CREATE TABLE Resources ( -- create a table for the resources
+CREATE TABLE Resource ( -- create a table for the resources
     resourceID INT AUTO_INCREMENT PRIMARY KEY, -- creates a column called resourceID that can't be empty and is the primary key
     resource_type VARCHAR(255) -- creates the resource type column which is a varchar of max length 255
 );
 
 # Initiatives
-CREATE TABLE Initiatives ( -- create an initiatives table to store sustainable initative details
+CREATE TABLE Sustainability ( -- create an initiatives table to store sustainable initative details
     sustainabilityID INT, -- creates a column called soilID that can't be empty and is the primary key
     farmID INT NOT NULL, -- adds a column called farmID which can't be null
     initiative_description VARCHAR(255),
@@ -140,23 +140,23 @@ SELECT DISTINCT farmID, farm_location -- select the unique `farmID` and `farm_Lo
 FROM Staging;
 
 # Crops
-INSERT INTO Crops (cropID, farmID, crop_name, planting_date, harvest_date)  -- insert these fields into the crop table
+INSERT INTO Crop (cropID, farmID, crop_name, planting_date, harvest_date)  -- insert these fields into the crop table
 SELECT DISTINCT cropID, farmID, crop_name, planting_date, harvest_date -- select unique values from those fields in staging
 FROM Staging;
 
 # Soils
-INSERT INTO Soils (soilID, farmID, ph_level, nitrogen_level, phosphorus_level, potassium_level) -- insert these fields into the soil table
+INSERT INTO Soil (soilID, farmID, ph_level, nitrogen_level, phosphorus_level, potassium_level) -- insert these fields into the soil table
 SELECT DISTINCT soilID, farmID, ph_level, nitrogen_level, phosphorus_level, potassium_level -- select unique values from those fields in staging
 FROM Staging;
 
 # Resources
-INSERT INTO Resources (resource_type) -- insert resource_type into the resources table
+INSERT INTO Resource (resource_type) -- insert resource_type into the resources table
 SELECT DISTINCT resource_type -- select unique values from resource_type from staging
 FROM Staging
 WHERE resource_type IS NOT NULL; -- make sure resource type isn't null
 
 # Initiatives
-INSERT INTO Initiatives (sustainabilityID, farmID, initiative_description, date_initiated,
+INSERT INTO Sustainability (sustainabilityID, farmID, initiative_description, date_initiated,
                          expected_impact, ev_score, water_source, labour_hours) -- insert these fields into the initiatives table
 SELECT initiativeID, farmID, 
        -- Using aggregate functions to select a single value for each record
@@ -181,15 +181,15 @@ CREATE TABLE Crop_Resource (
     resource_quantity DECIMAL(10,2),
     date_of_application DATE,
     PRIMARY KEY (cropID, resourceID, date_of_application),
-    FOREIGN KEY (cropID) REFERENCES Crops(cropID),
-    FOREIGN KEY (resourceID) REFERENCES Resources(resourceID)
+    FOREIGN KEY (cropID) REFERENCES Crop(cropID),
+    FOREIGN KEY (resourceID) REFERENCES Resource(resourceID)
 );
 
 -- insert the data from the staging and resources tables
 INSERT INTO Crop_Resource (cropID, resourceID, resource_quantity, date_of_application)
 SELECT DISTINCT s.cropID, r.resourceID, s.resource_quantity, s.date_of_application
 FROM Staging s
-JOIN Resources r ON s.resource_type = r.resource_type;
+JOIN Resource r ON s.resource_type = r.resource_type;
 
 # Crop-Initiative 
 -- needed as multiple crops use one initiative 
@@ -202,8 +202,8 @@ CREATE TABLE Crop_Initiative (
     crop_yield INT,
     -- Primary Key ensures each crop-initiative-farm combination is unique
     PRIMARY KEY (cropID, sustainabilityID, farmID),
-    FOREIGN KEY (cropID) REFERENCES Crops(cropID),
-    FOREIGN KEY (sustainabilityID, farmID) REFERENCES Initiatives(sustainabilityID, farmID)
+    FOREIGN KEY (cropID) REFERENCES Crop(cropID),
+    FOREIGN KEY (sustainabilityID, farmID) REFERENCES Sustainability(sustainabilityID, farmID)
 );
 
 -- insert the data from the staging and initiatives tables
