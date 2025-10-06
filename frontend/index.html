@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -173,13 +173,13 @@
   <!-- Interface for the POST request -->
   <section id="POST" class="hidden">
     <div class="container">
-      <div class="subtitle">Enter Your POST Request</div>
+      <div class="subtitle">Enter Your POST Request - One row at a time</div>
         <form id="get-form">
           <label>Table:</label>
             <input type="text" id="get-table" placeholder="e.g. Farm"><br><br>
 
           <label for="post-data">Data (JSON):</label><br>
-            <textarea id="post-data" name="data" rows="6" cols="40" placeholder='{"name": "New Farm", "location": "New Location}'></textarea><br><br>    
+            <textarea id="post-data" name="data" rows="6" cols="40" placeholder='{"location": "New Location}'></textarea><br><br>    
         <button type="submit">Run GET</button>
         </form>
     </div>
@@ -187,27 +187,27 @@
 
   <!-- Interface for the PUT request -->
   <section id="PUT" class="hidden">
-  <div class="container">
-    <div class="subtitle">Enter Your PUT Request</div>
-    <form id="put-form">
+    <div class="container">
+      <div class="subtitle">Enter Your PUT Request</div>
+      <form id="put-form">
 
-      <!-- Table input -->
-      <label for="put-table">Table:</label>
-      <input type="text" id="put-table" placeholder="e.g. Farm"><br><br>
+        <!-- Table input -->
+        <label for="put-table">Table:</label>
+        <input type="text" id="put-table" placeholder="e.g. Farm"><br><br>
 
-      <!-- ID to replace -->
-      <label for="put-id">Row ID to Replace:</label>
-      <input type="text" id="put-id" placeholder="e.g. 1"><br><br>
+        <!-- ID to replace -->
+        <label for="put-id">Row ID to Replace:</label>
+        <input type="text" id="put-id" placeholder="e.g. 1"><br><br>
 
-      <!-- New JSON data -->
-      <label for="put-data">New Data (JSON):</label><br>
-      <textarea id="put-data" name="data" rows="6" cols="40" placeholder='{"name": "Updated Farm", "size": 200}'></textarea><br><br>
+        <!-- New JSON data -->
+        <label for="put-data">New Data (JSON):</label><br>
+        <textarea id="put-data" name="data" rows="6" cols="40" placeholder='{"name": "Updated Farm", "size": 200}'></textarea><br><br>
 
-      <!-- Submit -->
-      <button type="submit">Run PUT</button>
-    </form>
-  </div>
-</section>
+        <!-- Submit -->
+        <button type="submit">Run PUT</button>
+      </form>
+    </div>
+  </section>
 
 <!-- Interface for the PATCH request -->
 <section id="PATCH" class="hidden">
@@ -292,3 +292,47 @@
       });
     });
   </script>
+
+
+  <script>
+    // creating a script to build the GET http request from the user input
+    document.getElementById("get-form").addEventListener("submit", function (e) {
+      e.preventDefault(); // stop page reload
+      const table = document.getElementById("get-table").value;
+      const id = document.getElementById("get-id").value;
+
+      let url = `http://localhost:3000/${table}`;
+      if (id) url += `/${id}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("output-box").innerHTML = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+          document.getElementById("output-box").innerHTML = error.message;
+        });
+        });
+  </script>
+
+  <script>
+    // creating a script to build the POST http request from the user input
+    document.getElementById("get-form").addEventListener("submit", function (e) {
+      e.preventDefault(); // stop page reload
+      const table = document.getElementById("get-table").value;
+      const data = document.getElementById("post-data").value;
+      let url = `http://localhost:3000/${table}`;
+
+      
+    });
+
+  </script>
+
+
+
+
+
+
+
+
+
