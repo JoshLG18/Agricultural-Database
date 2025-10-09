@@ -174,14 +174,15 @@
   <section id="POST" class="hidden">
     <div class="container">
       <div class="subtitle">Enter Your POST Request - One row at a time</div>
-        <form id="get-form">
-          <label>Table:</label>
-            <input type="text" id="get-table" placeholder="e.g. Farm"><br><br>
-
-          <label for="post-data">Data (JSON):</label><br>
-            <textarea id="post-data" name="data" rows="6" cols="40" placeholder='{"location": "New Location}'></textarea><br><br>    
-        <button type="submit">Run GET</button>
-        </form>
+      <form id="post-form">
+        <label>Table:</label>
+        <input type="text" id="post-table" placeholder="e.g. Farm"><br><br>
+  
+        <label for="post-data">Data (JSON):</label><br>
+        <textarea id="post-data" name="data" rows="6" cols="40"
+          placeholder='{"farmID":1,"farm_Location":"Kent"}'></textarea><br><br>
+        <button type="submit">Run POST</button>
+      </form>
     </div>
   </section>
 
@@ -225,7 +226,7 @@
 
       <!-- Partial JSON data -->
       <label for="patch-data">Data to Update (JSON):</label><br>
-      <textarea id="patch-data" name="data" rows="6" cols="40" placeholder='{"size": 250}'></textarea><br><br>
+      <textarea id="patch-data" name="data" rows="6" cols="40" placeholder='{"farm_location": "UK"}'></textarea><br><br>
 
       <!-- Submit -->
       <button type="submit">Run PATCH</button>
@@ -296,8 +297,9 @@
 
   <script>
     // creating a script to build the GET http request from the user input
-    document.getElementById("get-form").addEventListener("submit", function (e) {
+      document.getElementById("get-form").addEventListener("submit", function (e) {
       e.preventDefault(); // stop page reload
+
       const table = document.getElementById("get-table").value;
       const id = document.getElementById("get-id").value;
 
@@ -307,7 +309,7 @@
       fetch(url)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("output-box").innerHTML = JSON.stringify(data, null, 2);
+          document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>";
         })
         .catch(error => {
           document.getElementById("output-box").innerHTML = error.message;
@@ -317,16 +319,129 @@
 
   <script>
     // creating a script to build the POST http request from the user input
-    document.getElementById("get-form").addEventListener("submit", function (e) {
-      e.preventDefault(); // stop page reload
-      const table = document.getElementById("get-table").value;
-      const data = document.getElementById("post-data").value;
-      let url = `http://localhost:3000/${table}`;
-
+      document.querySelector('#post-form').addEventListener('submit', e => {
+      e.preventDefault();
       
-    });
+      const table = document.getElementById("post-table").value;
+      const data = document.getElementById("post-data").value;
 
+      fetch(`http://localhost:3000/${table}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>";
+        })
+        .catch(err =>{
+          document.getElementById("output-box").innerHTML = err.message;
+        })
+    });
   </script>
+
+  <script>
+    // creating the script for the PUT http request from the user input
+    document.querySelector('#put-form').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const table = document.getElementById("put-table").value;
+      const id = document.getElementById("put-id").value;
+      const data = document.getElementById("put-data").value;
+
+      fetch(`http://localhost:3000/${table}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>";
+        })
+        .catch(err => {
+          document.getElementById("output-box").innerHTML = err.message;
+        
+        })
+    });
+  </script>
+
+  <script>
+    // creating the script for the PATCH http request from the user input
+    document.querySelector('#patch-form').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const table = document.getElementById("patch-table").value;
+      const id = document.getElementById("patch-id").value;
+      const data = document.getElementById("patch-data").value;
+
+      fetch(`http://localhost:3000/${table}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data
+      })
+        .then(res => res.json())
+        .then(data => { 
+          document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>";
+        })
+        .catch(err=> {
+          document.getElementById("output-box").innerHTML = err.message;
+        })
+    });
+  </script>
+
+  <script>
+    // creating the script for the DELETE http request from the user input
+    document.querySelector('#delete-form').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const table = document.getElementById("delete-table").value;
+      const id = document.getElementById("delete-id").value;
+
+      fetch(`http://localhost:3000/${table}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(res => res.json())
+      .then(data => { 
+          document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>";
+        })
+        .catch(err=> {
+          document.getElementById("output-box").innerHTML = err.message;
+        })
+    });
+  </script>
+
+  <script>
+    // full query script
+    document.getElementById("query-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const sql = document.getElementById("sql-input").value;
+    const out = document.getElementById("output-box");
+
+    fetch("http://localhost:3000/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql })
+    })
+      .then(r => r.json())
+      .then(data => { 
+        document.getElementById("output-box").innerHTML = "<pre>" + JSON.stringify(data, null, 3) + "<pre>"; 
+      })
+      .catch(err => { 
+        document.getElementById("output-box").innerHTML = err.message; 
+      });
+  });
+</script>
+
+
 
 
 
