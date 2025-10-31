@@ -137,7 +137,7 @@
 
 </head>
 <body>
-  <div class="title">🌱 Agriculture Database Access</div>
+  <div class="title">Agriculture Database Access</div>
   <div class="container"> <!-- Uses the container format so everything in these tags is in a box -->
     <div class="subtitle">Which Request Do You Want To Perform?</div>
     <div>For more complex queries and composite tables use the full query interface.</div>
@@ -301,12 +301,15 @@
       document.getElementById("get-form").addEventListener("submit", function (e) {
       e.preventDefault(); // stop page reload
 
+      // get the user inputs from the form
       const table = document.getElementById("get-table").value;
       const id = document.getElementById("get-id").value;
-
+      
+      // construct the URL to send to the API
       let url = `https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}`;
       if (id) url += `/${id}`;
 
+      // fetch from the API
       fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -323,9 +326,11 @@
       document.querySelector('#post-form').addEventListener('submit', e => {
       e.preventDefault();
       
+      // get the user inputs from the form
       const table = document.getElementById("post-table").value;
       const data = document.getElementById("post-data").value;
 
+      // fetch from the API
       fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}`, {
         method: 'POST',
         headers: {
@@ -348,10 +353,12 @@
     document.querySelector('#put-form').addEventListener('submit', e => {
       e.preventDefault();
 
+      // get the user inputs from the form
       const table = document.getElementById("put-table").value;
       const id = document.getElementById("put-id").value;
       const data = document.getElementById("put-data").value;
 
+      // Fetch from the API
       fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}/${id}`, {
         method: 'PUT',
         headers: {
@@ -375,10 +382,12 @@
     document.querySelector('#patch-form').addEventListener('submit', e => {
       e.preventDefault();
 
+      // get the user inputs from the form
       const table = document.getElementById("patch-table").value;
       const id = document.getElementById("patch-id").value;
       const data = document.getElementById("patch-data").value;
 
+      // Fetch from the API
       fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}/${id}`, {
         method: 'PATCH',
         headers: {
@@ -423,10 +432,13 @@
   <script>
     // full query script
     document.getElementById("query-form").addEventListener("submit", (e) => {
-    e.preventDefault();
+    e.preventDefault(); 
+
+    // get the SQL query from the input box
     const sql = document.getElementById("sql-input").value;
     const out = document.getElementById("output-box");
 
+    // send the query to the API
     fetch("https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -442,6 +454,10 @@
   });
 </script>
 
+
+<!-- References -->
+<!-- https://www.youtube.com/watch?v=XHokFQeQ6Lk -->
+<!-- https://www.w3schools.com/js/js_api_fetch.asp -->
 
 
 

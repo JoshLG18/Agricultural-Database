@@ -1,8 +1,9 @@
-// Import required libaries
+// import environment variables from azure or .env file
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
+// load in all dependencies to variables
 const express = require('express');
 const sql = require('mssql'); 
 const app = express();
@@ -12,30 +13,28 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json());
 
-// Database config
-
-// Configuration - set up the database access
+// Database config 
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   server: process.env.DB_HOST,
   database: process.env.DB_DATABASE,
-  options: {
+  options: { 
     encrypt: true,
     trustServerCertificate: false
   }
 };
 
-let pool; 
+let pool; // variable to hold the connections
 
 // Function to create and maintain the connection pool
 async function connectToDb() {
   try {
-    pool = await sql.connect(dbConfig);
-    console.log("Connected to Azure SQL Database!");
-  } catch (err) {
-    console.error("Database connection failed:", err.message);
-    // Exit if the database connection fails on startup
+    pool = await sql.connect(dbConfig); // wait for connection with the database
+    console.log("Connected to Azure SQL Database!"); // if connected log success
+  } catch (err) { // if there is an error
+    console.error("Database connection failed:", err.message); // log the error message
+    // exit the process if there is a failure
     process.exit(1); 
   }
 }
@@ -43,53 +42,63 @@ async function connectToDb() {
 // Endpoints
 
 // Root endpoint
-app.get("/", (req, res) => {
-  res.send("Agricultural DB API is working!! Use /farm to interact.");
+app.get("/", (req, res) => { // base endpoint at /
+  // send a message to the user if it is working
+  res.send("Agricultural DB API is working!! Use /farm to interact."); 
 });
 
 // Full query request - only allows SELECT statements
 app.post("/query", async (req, res) => {
-  const sqlQuery = req.body && req.body.sql;
+  const sqlQuery = req.body && req.body.sql; // get the SQL from the front end body
+  // return an error if there is no SQL provided
   if (!sqlQuery) return res.status(400).json({ error: "Missing 'sql' in body" });
 
+  // turn the query to uppercase and trim whitespace for checking
   const upperSql = sqlQuery.trim().toUpperCase();
 
+  // check if the sql starts with SELECT if not return an error
   if (!upperSql.startsWith("SELECT")) {
-    return res.status(403).json({  
+    return res.status(403).json({  // error 403 = forbidden
       error: "Forbidden: Only SELECT queries are allowed via this endpoint." 
     });
   }
 
-  console.log("Running SQL:", sqlQuery);
+  console.log("Running SQL:", sqlQuery); // log that the query is running
 
   try {
+    // execute the query and wait for the result
     const result = await pool.request().query(sqlQuery);
 
-    res.json(result.recordset); 
+    res.json(result.recordset); // send back the resulting data as JSON
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message }); // return any SQL errors
   }
 });
 
 // GET request: Retrieve data by table and optional ID
 app.get("/:table/:id?", async (req, res) => {
+  // get the parameters from the request in the URL
   const table = req.params.table;   
   const id = req.params.id;         
 
+  // set the base sql to be a select all from the table
   let sqlQuery = `SELECT * FROM ${table}`; 
 
   try {
+    // create a new request object
     const request = pool.request();
     
+    // if there is an ID provided, add a WHERE clause to the SQL
     if (id) {
         const pk = table.toLowerCase() + "ID";   
         sqlQuery += ` WHERE ${pk} = @idParam`; 
         request.input('idParam', sql.Int, id);
     }
-
+    // execute the query and wait for the result
     const result = await request.query(sqlQuery);
     res.json(result.recordset);
 
+  // catch any errors that occur during the process
   } catch (err) {
     // Log the full error to the console
     console.error(`Error in GET /${table}/${id}:`, err); 
@@ -97,29 +106,34 @@ app.get("/:table/:id?", async (req, res) => {
   }
 });
 
-// POST request: Insert new record
+// POST request - insert a record
 app.post("/:table", async (req, res) => {
+  // get the parameters from the request in the URL
   const table = req.params.table;
   const data = req.body; 
 
-  // Safely construct INSERT query using mssql inputs
+  
   try {
+    // create a new request object
     const request = pool.request();
+
+    // builds the columns and values for the insert statement
     const columns = Object.keys(data);
     const values = columns.map(col => `@${col}`);
 
-    // Map all properties from the request body to mssql input parameters
+    // creates SQL parameters for each column
     columns.forEach(col => {
-        // Use VARCHAR as a generic type, or specify actual SQL type if known
         request.input(col, sql.VarChar, data[col]); 
     });
 
+    // construct the full SQL insert statement
     const sqlQuery = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${values.join(', ')})`;
 
+    // wait for the query to run and get the result
     const result = await request.query(sqlQuery);
-    console.log('Data Inserted');
+    console.log('Data Inserted'); // log success - data entered
 
-
+    // return a response to the frontend
     return res.status(201).json({ ok: true, rowsAffected: result.rowsAffected[0] });
 
   } catch (err) {
@@ -128,41 +142,55 @@ app.post("/:table", async (req, res) => {
   }
 });
 
-// PUT request: Full update of record
+// PUT request - update a current record
 app.put("/:table/:id", async (req, res) => {
+  // get the parameters from the request in the URL
   const table = req.params.table;
   const id = req.params.id;
   const data = req.body;
 
   try {
+    // create a new request object in the pool
     const request = pool.request();
+
+    // builds the SET clauses for the update statement
     const setClauses = Object.keys(data).map(col => `${col} = @${col}`);
+
+    // figure out the primary key name as the table name + "ID"
     const pk = table.toLowerCase() + "ID";   
 
     // Define all parameters
     Object.keys(data).forEach(col => {
         request.input(col, sql.VarChar, data[col]);
     });
+
+    // define the ID parameter
     request.input('idParam', sql.Int, id);
 
+    // construct the full SQL update statement
     let sqlQuery = `UPDATE ${table} SET ${setClauses.join(', ')} WHERE ${pk} = @idParam`;
 
+    // wait for the query to run and get the result
     const result = await request.query(sqlQuery);
-    console.log('Data Updated');
 
+    console.log('Data Updated'); // log success - data updated
+
+    // check if any rows were affected
     if (result.rowsAffected[0] === 0) {
+      // no rows updated - return 404 not found
       return res.status(404).json({ ok: false, message: "No matching record found to update" });
     }
-    
+
+    // return success response to frontend
     return res.status(200).json({ ok: true, rowsAffected: result.rowsAffected[0] });
 
-  } catch (err) {
+  } catch (err) { // catch any errors and return to frontend
     console.error(`Error in PUT /${table}/${id}:`, err);
     return res.status(500).json({ error: err.message });
   }
 });
  
-// PATCH request: Partial update of record (Uses the same logic as PUT for simplicity)
+// PATCH request - partially update a record - same logic as the PUT request
 app.patch("/:table/:id", async (req, res) => {
   const table = req.params.table;
   const id = req.params.id;
@@ -196,31 +224,39 @@ app.patch("/:table/:id", async (req, res) => {
   }
 });
 
-// DELETE request: Delete a record
+// DELETE request - delete a record
 app.delete("/:table/:id", async (req, res) => {
+  // get the parameters from the request in the URL
   const table = req.params.table;
   const id = req.params.id;
 
   try {
+    // construct the primary key name
     const pk = table.toLowerCase() + "ID";
+
+    // construct the full SQL delete statement
     const sqlQuery = `DELETE FROM ${table} WHERE ${pk} = @idParam`;
     
+    // execute the delete query
     const result = await pool.request()
         .input('idParam', sql.Int, id)
         .query(sqlQuery);
 
+    // log success - data deleted
     console.log("Data Deleted");
 
+    // check if any rows were affected
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ ok: false, message: "No matching record found" });
     }
-
+    // return success response to frontend
     return res.status(200).json({
       ok: true,
       message: "Record deleted successfully",
       affectedRows: result.rowsAffected[0]
     });
   } catch (err) {
+    // log any errors that occur
     console.error(`Error in DELETE /${table}/${id}:`, err);
     return res.status(500).json({ error: err.message });
   }
@@ -233,3 +269,9 @@ connectToDb().then(() => {
     console.log(`Server running on http://0.0.0.0:${port}`);
   });
 });
+
+
+// References Used:
+// https://www.youtube.com/watch?v=Uvy_BlgwfLI
+// https://www.youtube.com/watch?v=XJpYH7K7TGM
+// https://learn.microsoft.com/en-us/azure/azure-sql/database/connect-query-nodejs?view=azuresql&tabs=macos
