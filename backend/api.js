@@ -1,170 +1,228 @@
 // Import required libaries
+require('dotenv').config(); // Load environment variables from .env file
+
 const express = require('express');
-const mysql = require('mysql');
+const sql = require('mssql'); 
+const app = express();
+const port = process.env.PORT || 3000;
+const cors = require("cors");
 
-const app = express(); // defines the express application
-const port = 3000; // sets the port where the server will listen
-const cors = require("cors"); // imports cors to allow for frontend to comms with backend
+app.use(cors());
+app.use(express.json());
 
-app.use(cors()); // use cors to allow the frontend to comms with backend
-app.use(express.json()); // set up module to parse json automatically
+// Database config
 
+// Configuration - set up the database access
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+};
 
-// Connect to database
-let con = mysql.createConnection({
-  host: "localhost",
-  user: "API",
-  password: "Wycombe153*",
-  database: "Agriculture"
-});
+let pool; 
 
-con.connect(function(err) {
-  if (err) throw err; // if the connectoin fails throw an error
-  console.log("Connected!");  // if not say connected
-});
+// Function to create and maintain the connection pool
+async function connectToDb() {
+  try {
+    pool = await sql.connect(dbConfig);
+    console.log("Connected to Azure SQL Database!");
+  } catch (err) {
+    console.error("Database connection failed:", err.message);
+    // Exit if the database connection fails on startup
+    process.exit(1); 
+  }
+}
+
+// Endpoints
 
 // Root endpoint
 app.get("/", (req, res) => {
   res.send("Agricultural DB API is working!! Use /farm to interact.");
 });
 
-// creating the full query request
-app.post("/query", (req, res) => {
-  const sql = req.body && req.body.sql;
-  if (!sql) return res.status(400).json({ error: "Missing 'sql' in body" });
+// Full query request - only allows SELECT statements
+app.post("/query", async (req, res) => {
+  const sqlQuery = req.body && req.body.sql;
+  if (!sqlQuery) return res.status(400).json({ error: "Missing 'sql' in body" });
 
-  console.log("Running SQL:", sql);
-  con.query(sql, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(result);
-  });
+  const upperSql = sqlQuery.trim().toUpperCase();
+
+  if (!upperSql.startsWith("SELECT")) {
+    return res.status(403).json({  
+      error: "Forbidden: Only SELECT queries are allowed via this endpoint." 
+    });
+  }
+
+  console.log("Running SQL:", sqlQuery);
+
+  try {
+    const result = await pool.request().query(sqlQuery);
+    
+    res.json(result.recordset); 
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-// using the user input to create the sql query sent to the DB
-app.get("/:table/:id?", (req, res) => {
+// GET request: Retrieve data by table and optional ID
+app.get("/:table/:id?", async (req, res) => {
   const table = req.params.table;   
   const id = req.params.id;         
 
-  let sql = `SELECT * FROM ??`;
-  let params = [table];
+  let sqlQuery = `SELECT * FROM ${table}`; 
 
-  if (id) {
-    const pk = table.toLowerCase() + "ID";   // "Farm" -> "farmID", "Crop" -> "cropID"
-    sql += ` WHERE ?? = ?`;                  // <-- add space + column placeholder
-    params.push(pk, id);                     // <-- push COLUMN and VALUE (2 items)
+  try {
+    const request = pool.request();
+    
+    if (id) {
+        const pk = table.toLowerCase() + "ID";   
+        sqlQuery += ` WHERE ${pk} = @idParam`; 
+        request.input('idParam', sql.Int, id);
+    }
+
+    const result = await request.query(sqlQuery);
+    res.json(result.recordset);
+
+  } catch (err) {
+    // Log the full error to the console
+    console.error(`Error in GET /${table}/${id}:`, err); 
+    return res.status(500).json({ error: err.message });
   }
-
-  // see exactly what MySQL will execute (leave this on while testing)
-  console.log(require('mysql').format(sql, params));
-
-  con.query(sql, params, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(result);
-  });
 });
 
-// creating the post request
+// POST request: Insert new record
 app.post("/:table", async (req, res) => {
   const table = req.params.table;
-  const id = req.params.id;
-  const data = req.body; // e.g. { farmID:1, farm_Location:"Kent" }
+  const data = req.body; 
 
-  let sql = `INSERT INTO ?? SET ?`;
-  let params = [table, data];
+  // Safely construct INSERT query using mssql inputs
+  try {
+    const request = pool.request();
+    const columns = Object.keys(data);
+    const values = columns.map(col => `@${col}`);
 
-  con.query(sql, params, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    // Map all properties from the request body to mssql input parameters
+    columns.forEach(col => {
+        // Use VARCHAR as a generic type, or specify actual SQL type if known
+        request.input(col, sql.VarChar, data[col]); 
+    });
+
+    const sqlQuery = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${values.join(', ')})`;
+
+    const result = await request.query(sqlQuery);
     console.log('Data Inserted');
-    // send a response so the frontend can finish
-    return res.status(201).json({ ok: true, insertedId: result.insertId || null });
-  });
+
+
+    return res.status(201).json({ ok: true, rowsAffected: result.rowsAffected[0] });
+
+  } catch (err) {
+    console.error(`Error in POST /${table}:`, err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-// creating the PUT request
+// PUT request: Full update of record
 app.put("/:table/:id", async (req, res) => {
   const table = req.params.table;
   const id = req.params.id;
   const data = req.body;
 
-  let sql = `UPDATE ?? SET ?`;
-  let params = [table, data]
-
-  if (id) {
+  try {
+    const request = pool.request();
+    const setClauses = Object.keys(data).map(col => `${col} = @${col}`);
     const pk = table.toLowerCase() + "ID";   
-    sql += ` WHERE ?? = ?`;                  
-    params.push(pk, id);                     
-  }
 
-  console.log(require('mysql').format(sql, params));
-
-  con.query(sql, params, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    console.log('Data Updated');
-    return res.status(201).json({ ok: true, insertedId: result.insertId || null });
+    // Define all parameters
+    Object.keys(data).forEach(col => {
+        request.input(col, sql.VarChar, data[col]);
     });
+    request.input('idParam', sql.Int, id);
+
+    let sqlQuery = `UPDATE ${table} SET ${setClauses.join(', ')} WHERE ${pk} = @idParam`;
+
+    const result = await request.query(sqlQuery);
+    console.log('Data Updated');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ ok: false, message: "No matching record found to update" });
+    }
+    
+    return res.status(200).json({ ok: true, rowsAffected: result.rowsAffected[0] });
+
+  } catch (err) {
+    console.error(`Error in PUT /${table}/${id}:`, err);
+    return res.status(500).json({ error: err.message });
+  }
 });
  
-// creating the patch request
+// PATCH request: Partial update of record (Uses the same logic as PUT for simplicity)
 app.patch("/:table/:id", async (req, res) => {
   const table = req.params.table;
   const id = req.params.id;
   const data = req.body;
 
-  let sql = `UPDATE ?? SET ?`;
-  let params = [table, data]
-
-  if (id) {
+  try {
+    const request = pool.request();
+    const setClauses = Object.keys(data).map(col => `${col} = @${col}`);
     const pk = table.toLowerCase() + "ID";   
-    sql += ` WHERE ?? = ?`;                  
-    params.push(pk, id);                     
-  }
 
-  console.log(require('mysql').format(sql, params));
-
-  con.query(sql, params, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    console.log('Data Updated');
-    return res.status(201).json({ ok: true, insertedId: result.insertId || null });
+    // Define all parameters
+    Object.keys(data).forEach(col => {
+        request.input(col, sql.VarChar, data[col]);
     });
+    request.input('idParam', sql.Int, id);
+
+    let sqlQuery = `UPDATE ${table} SET ${setClauses.join(', ')} WHERE ${pk} = @idParam`;
+    
+    const result = await request.query(sqlQuery);
+    console.log('Data Updated');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ ok: false, message: "No matching record found to patch" });
+    }
+    
+    return res.status(200).json({ ok: true, rowsAffected: result.rowsAffected[0] });
+
+  } catch (err) {
+    console.error(`Error in PATCH /${table}/${id}:`, err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-// creating the delete request
+// DELETE request: Delete a record
 app.delete("/:table/:id", async (req, res) => {
   const table = req.params.table;
   const id = req.params.id;
 
-  const pk = table.toLowerCase() + "ID";
-  const sql = `DELETE FROM ?? WHERE ?? = ?`;
-  const params = [table, pk, id];
-
-  console.log(require("mysql").format(sql, params));
-
-  con.query(sql, params, (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    const pk = table.toLowerCase() + "ID";
+    const sqlQuery = `DELETE FROM ${table} WHERE ${pk} = @idParam`;
+    
+    const result = await pool.request()
+        .input('idParam', sql.Int, id)
+        .query(sqlQuery);
 
     console.log("Data Deleted");
 
-    if (result.affectedRows === 0) {
+    if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ ok: false, message: "No matching record found" });
     }
 
     return res.status(200).json({
       ok: true,
       message: "Record deleted successfully",
-      affectedRows: result.affectedRows
+      affectedRows: result.rowsAffected[0]
     });
-  });
+  } catch (err) {
+    console.error(`Error in DELETE /${table}/${id}:`, err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+connectToDb().then(() => {
+    app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
+    });
 });
