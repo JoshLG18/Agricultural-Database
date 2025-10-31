@@ -1,5 +1,7 @@
 // Import required libaries
-require('dotenv').config(); // Load environment variables from .env file
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const express = require('express');
 const sql = require('mssql'); 
@@ -18,6 +20,10 @@ const dbConfig = {
   password: process.env.DB_PASSWORD,
   server: process.env.DB_HOST,
   database: process.env.DB_DATABASE,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false
+  }
 };
 
 let pool; 
@@ -58,7 +64,7 @@ app.post("/query", async (req, res) => {
 
   try {
     const result = await pool.request().query(sqlQuery);
-    
+
     res.json(result.recordset); 
   } catch (err) {
     return res.status(500).json({ error: err.message });
