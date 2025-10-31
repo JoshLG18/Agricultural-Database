@@ -140,6 +140,7 @@
   <div class="title">🌱 Agriculture Database Access</div>
   <div class="container"> <!-- Uses the container format so everything in these tags is in a box -->
     <div class="subtitle">Which Request Do You Want To Perform?</div>
+    <div>For more complex queries and composite tables use the full query interface.</div>
     <div class="dropdown">
       <button class="dropbtn"> Requests</button>
       <div class="dropdown-content">
@@ -257,7 +258,7 @@
   <!-- Interface for the sql querying -->
 <section id="FULLQUERY" class="hidden"> <!-- Uses the container format so everything in these tags is in a box -->
   <div class="container">
-    <div class="subtitle">Enter an SQL Query</div> <!-- Uses the class subtitle to format the text enter SQL Query-->
+    <div class="subtitle">Enter an SQL Query - Only SELECT allowed</div> <!-- Uses the class subtitle to format the text enter SQL Query-->
     <form id="query-form"> <!-- Opens the query form box -->
       <textarea id="sql-input" placeholder="e.g. SELECT * FROM Farm;"></textarea> <!-- adds place holder text inside the input box -->
       <br>
@@ -303,7 +304,7 @@
       const table = document.getElementById("get-table").value;
       const id = document.getElementById("get-id").value;
 
-      let url = `http://localhost:3000/${table}`;
+      let url = `https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}`;
       if (id) url += `/${id}`;
 
       fetch(url)
@@ -325,7 +326,7 @@
       const table = document.getElementById("post-table").value;
       const data = document.getElementById("post-data").value;
 
-      fetch(`http://localhost:3000/${table}`, {
+      fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -351,7 +352,7 @@
       const id = document.getElementById("put-id").value;
       const data = document.getElementById("put-data").value;
 
-      fetch(`http://localhost:3000/${table}/${id}`, {
+      fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -378,7 +379,7 @@
       const id = document.getElementById("patch-id").value;
       const data = document.getElementById("patch-data").value;
 
-      fetch(`http://localhost:3000/${table}/${id}`, {
+      fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -403,7 +404,7 @@
       const table = document.getElementById("delete-table").value;
       const id = document.getElementById("delete-id").value;
 
-      fetch(`http://localhost:3000/${table}/${id}`, {
+      fetch(`https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/${table}/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -426,7 +427,7 @@
     const sql = document.getElementById("sql-input").value;
     const out = document.getElementById("output-box");
 
-    fetch("http://localhost:3000/query", {
+    fetch("https://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql })
