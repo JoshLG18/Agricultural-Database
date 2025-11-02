@@ -26,6 +26,34 @@
       font-weight: bold;
       border-bottom: 4px solid #1B5E20;
     }
+    /* Creates styling for the disclaimer*/
+    .info-alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #C8E6C9; 
+      background-color: #E8F5E9;
+      color: #1B5E20; 
+      border-left: 5px solid #4CAF50;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    /* creates bullet point styling */
+    .info-alert ul {
+      list-style-type: none; 
+      padding-left: 0;
+      margin: 5px 0 0 0;
+    }
+    .info-alert ul li {
+      margin-top: 5px;
+      padding-left: 15px
+    }
+    /* Adds a green bullet before each list item */
+    .info-alert ul li:before {
+      content: "\2022"; 
+      color: #4CAF50;
+      display: inline-block;
+      width: 1em
+    }
     /* Creates the styling for the container forms a box around the items*/
     .container {
       max-width: 900px;
@@ -138,9 +166,17 @@
 </head>
 <body>
   <div class="title">Agriculture Database Access</div>
-  <div class="container"> <!-- Uses the container format so everything in these tags is in a box -->
+  <div class="container"> 
     <div class="subtitle">Which Request Do You Want To Perform?</div>
-    <div>For more complex queries and composite tables use the full query interface.</div>
+    
+    <div class="info-alert">
+      <strong>Test Environment Disclaimer:</strong>
+      <ul>
+        <li>You may have to wait up to 3 minutes for the API and Database to start as this is a test environment.</li>
+        <li>For more complex queries and composite tables, please use the FULL QUERY interface.</li>
+      </ul>
+    </div>
+
     <div class="dropdown">
       <button class="dropbtn"> Requests</button>
       <div class="dropdown-content">
