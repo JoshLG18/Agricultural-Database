@@ -230,9 +230,11 @@ app.patch("/:table/:id", async (req, res) => {
     const pk = table.toLowerCase() + "ID";   
 
     // Define all parameters
-    Object.keys(data).forEach(col => {
-        request.input(col, sql.VarChar, data[col]);
+    columns.forEach(col => {
+        const type = getColumnType(col); 
+        request.input(col, type, data[col]);
     });
+
     request.input('idParam', sql.Int, id);
 
     let sqlQuery = `UPDATE ${table} SET ${setClauses.join(', ')} WHERE ${pk} = @idParam`;
