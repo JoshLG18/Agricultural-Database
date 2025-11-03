@@ -149,7 +149,7 @@ app.post("/:table", async (req, res) => {
 
     // creates SQL parameters for each column
     columns.forEach(col => {
-        const type = getColumnType(col); 
+        const type = TypeMapping(col); 
         request.input(col, type, data[col]); 
     });
 
@@ -180,15 +180,17 @@ app.put("/:table/:id", async (req, res) => {
     // create a new request object in the pool
     const request = pool.request();
 
+    const columns = Object.keys(data); 
+
     // builds the SET clauses for the update statement
-    const setClauses = Object.keys(data).map(col => `${col} = @${col}`);
+    const setClauses = columns.map(col => `${col} = @${col}`);
 
     // figure out the primary key name as the table name + "ID"
     const pk = table.toLowerCase() + "ID";   
 
     // Define all parameters
     columns.forEach(col => {
-        const type = getColumnType(col); 
+        const type = TypeMapping(col); 
         request.input(col, type, data[col]); 
     });
 
@@ -226,12 +228,15 @@ app.patch("/:table/:id", async (req, res) => {
 
   try {
     const request = pool.request();
-    const setClauses = Object.keys(data).map(col => `${col} = @${col}`);
+    const columns = Object.keys(data);
+
+    // builds the SET clauses for the update statement
+    const setClauses = columns.map(col => `${col} = @${col}`);
     const pk = table.toLowerCase() + "ID";   
 
     // Define all parameters
     columns.forEach(col => {
-        const type = getColumnType(col); 
+        const type = TypeMapping(col); 
         request.input(col, type, data[col]);
     });
 
