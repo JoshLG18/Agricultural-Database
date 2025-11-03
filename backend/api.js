@@ -39,6 +39,32 @@ async function connectToDb() {
   }
 }
 
+// Function to allow for data insertion - creates type mapping
+function TypeMapping(col_name) {
+  const mappings = {
+    "farmID": sql.Int,
+    "cropID": sql.Int,
+    "soilID": sql.Int,
+    "resourceID": sql.Int,
+    "initativeID": sql.Int,
+
+    'ph_level': sql.Decimal(3, 1),
+    'nitrogen_level': sql.Int,
+    'phosphorus_level': sql.Int,
+    'potassium_level': sql.Int,
+    'resource_quantity': sql.Decimal(10, 2),
+    'crop_yield': sql.Int,
+    'ev_score': sql.Int,
+    'labour_hours': sql.Int,
+
+    'planting_date': sql.Date,
+    'harvest_date': sql.Date,
+    'date_of_application': sql.Date,
+    'date_initiated': sql.Date,
+  };
+  return mappings[col_name] || sql.NVarChar;
+}
+
 // Endpoints
 
 // Root endpoint
@@ -112,18 +138,19 @@ app.post("/:table", async (req, res) => {
   const table = req.params.table;
   const data = req.body; 
 
-  
   try {
     // create a new request object
     const request = pool.request();
 
     // builds the columns and values for the insert statement
     const columns = Object.keys(data);
+
     const values = columns.map(col => `@${col}`);
 
     // creates SQL parameters for each column
     columns.forEach(col => {
-        request.input(col, sql.VarChar, data[col]); 
+        const type = getColumnType(col); // Get the correct MSSQL type
+        request.input(col, type, data[col]); 
     });
 
     // construct the full SQL insert statement
