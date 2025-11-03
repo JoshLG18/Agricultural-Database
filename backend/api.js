@@ -149,7 +149,7 @@ app.post("/:table", async (req, res) => {
 
     // creates SQL parameters for each column
     columns.forEach(col => {
-        const type = getColumnType(col); // Get the correct MSSQL type
+        const type = getColumnType(col); 
         request.input(col, type, data[col]); 
     });
 
