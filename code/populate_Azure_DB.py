@@ -1,6 +1,4 @@
 # Script to populate the azure database
-# Based off - 
-# https://www.youtube.com/watch?v=svOgLQ7Qmjk
 
 import pandas as pd
 from sqlalchemy import create_engine, text
@@ -8,7 +6,6 @@ import urllib.parse
 import sys
 import os
 from dotenv import load_dotenv
-
 
 # Configuration
 
@@ -21,51 +18,43 @@ PASSWORD = os.getenv("PASSWORD")
 CSV_PATH = os.getenv("CSV_PATH")
 ODBC_DRIVER = os.getenv("ODBC_DRIVER")
 
-# encodes the connection string so special cahracters don't break the url
-quoted_password = urllib.parse.quote_plus(PASSWORD)
-
 # builds the connection string to access the database
 CONNECTION_STRING = (
-    f"mssql+pyodbc://{USERNAME}:{quoted_password}@{SERVER}/{DATABASE}?"
+    f"mssql+pyodbc://{USERNAME}:{urllib.parse.quote_plus(PASSWORD)}@{SERVER}/{DATABASE}?"
     f"driver={ODBC_DRIVER}&Encrypt=yes&TrustServerCertificate=no&ConnectionTimeout=30"
 )
 
-# Create the engine to connect
+# Connect to the Azure SQL Database
 try:
-    engine = create_engine(CONNECTION_STRING) # try connect to the database and create the engine
+    engine = create_engine(CONNECTION_STRING) # tries to connect to the database
     print("Connected to Azure SQL successfully.")
 except Exception as e: # if it breaks return the error
     print(f"Connection error: {e}")
     sys.exit(1)
 
-# Exccute SQL helper
-def execute_sql_transaction(sql_commands):
+# Function to execute a list of SQL commands
+def run_sql(sql_commands):
     try:
-        with engine.begin() as conn: # starts the connection to the database
+        with engine.begin() as connection: # starts the connection to the database
             for cmd in sql_commands: # iterate through the commands executing them
-                conn.execute(text(cmd))
+                connection.execute(text(cmd))
         print("SQL normalization executed successfully.")
         return True
     except Exception as e:
         print(f"SQL execution error: {e}")
-        return False
-
 
 # ETL pipeline
 def run_etl_pipeline():
-    print("\n Starting ETL pipeline...")
+    print("Starting ETL pipeline...")
 
-    # Extract
+    # try and load the CSV
     try:
         df = pd.read_csv(CSV_PATH)
         print(f"CSV loaded successfully with {len(df)} rows.")
     except Exception as e:
         print(f"Error loading CSV: {e}")
-        return
 
-    # Transform
-
-    # Force column names to match your Azure schema
+    # column names need to match the azure database schema
     df.columns = [
         "FarmID", "Farm_Location", "CropID", "Crop_Name", "Planting_Date", "Harvest_Date",
         "SoilID", "Ph_Level", "Nitrogen_Level", "Phosphorus_Level", "Potassium_Level",
@@ -74,13 +63,13 @@ def run_etl_pipeline():
         "Crop_Yield", "EV_Score", "Water_Source", "Labour_Hours"
     ]
 
-    # Clean up date fields
+    # clean up dates
     date_cols = ["Planting_Date", "Harvest_Date", "Date_Of_Application", "Date_Initiated"]
     for col in date_cols:
         df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
         df[col] = df[col].dt.strftime("%Y-%m-%d")
-
-    # Convert int columns
+        
+    # convert columns to appropriate types
     int_cols = [
         "FarmID", "CropID", "SoilID", "ResourceID", "InitiativeID",
         "Nitrogen_Level", "Phosphorus_Level", "Potassium_Level",
@@ -88,10 +77,10 @@ def run_etl_pipeline():
     ]
     for col in int_cols:
         if col in df.columns:
-            df[col] = df[col].fillna(0).astype(int)
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = df[col].astype('Int64')
 
-    # Load
-    print("Loading into Staging table")
+    print("Creating and loading data into staging table")
 
     try:
         # Creating a staging table 
@@ -107,14 +96,13 @@ def run_etl_pipeline():
             Labour_Hours INT
         );
         """
-        execute_sql_transaction([staging_ddl])
-        df.to_sql("Staging", con=engine, schema="dbo", if_exists="append", index=False)
-        print("Data successfully loaded into dbo.Staging.")
+        run_sql([staging_ddl])
+        df.to_sql("Staging", con=engine, schema="dbo", if_exists="append", index=False) 
+        print("Data successfully loaded into staging.")
     except Exception as e:
-        print(f"Error loading Staging: {e}")
-        return
+        print(f"Error loading staging: {e}")
 
-    # Normalize the tables
+    # Normalise the tables
     print("Populating all other tables")
 
     normalisation_sql = [        
@@ -201,18 +189,26 @@ def run_etl_pipeline():
           AND FarmID IS NOT NULL 
           AND InitiativeID IS NOT NULL
           AND CropID IS NOT NULL
-          AND ResourceID IS NOT NULL; -- CRUCIAL: All PK components checked
+          AND ResourceID IS NOT NULL; 
         """,
 
         # Drop Staging
         "IF OBJECT_ID('dbo.Staging', 'U') IS NOT NULL DROP TABLE dbo.Staging;"
     ]
 
-    if execute_sql_transaction(normalisation_sql):
-        print("\nETL pipeline completed successfully.")
+    if run_sql(normalisation_sql):
+        print("ETL pipeline completed successfully.")
     else:
-        print("\nETL pipeline failed during normalization.")
+        print("ETL pipeline failed during normalization.")
 
 # run the pipeline
 if __name__ == "__main__":
     run_etl_pipeline()
+
+
+# References
+# https://www.youtube.com/watch?v=svOgLQ7Qmjk
+# https://learn.microsoft.com/en-us/azure/azure-sql/database/connect-query-portal?view=azuresql
+# https://learn.microsoft.com/en-us/azure/azure-sql/database/connect-query-python?view=azuresql&tabs=windows
+# https://docs.sqlalchemy.org/en/20/dialects/mssql.html
+

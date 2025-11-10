@@ -27,7 +27,7 @@ CREATE TABLE Soil ( -- creates a table for soils data
     nitrogen_level INT, -- creates a column for nitrogen level
     phosphorus_level INT, -- creates a column for phosphorus level
     potassium_level INT, -- creates a column for potassium level
-    FOREIGN KEY (farmID) REFERENCES Farm(farmID) -- sets the farmID as a FK from the farm table as 1 farm has one soil type
+    FOREIGN KEY (farmID) REFERENCES Farm(farmID), -- sets the farmID as a FK from the farm table as 1 farm has one soil type
 );
 
 -- Resources table
@@ -70,6 +70,7 @@ CREATE TABLE Staging ( -- Create a temporary table to allow the data to be read 
 );
 
 -- Load Data into Staging Table
+-- Update this file path to match your local machine
 LOAD DATA LOCAL INFILE '/Users/joshlegrice/Desktop/University/Masters/Data Systems/Coursework/data/COMM108_Data_Coursework.csv'
 INTO TABLE Staging -- load the data from the above location into the temporary table
 FIELDS TERMINATED BY ',' -- defines the delimeter to seperate the columns by
@@ -84,9 +85,8 @@ SET
     planting_date = STR_TO_DATE(TRIM(planting_date), '%d/%m/%Y'),
     harvest_date = STR_TO_DATE(TRIM(harvest_date), '%d/%m/%Y'),
     date_of_application = STR_TO_DATE(TRIM(date_of_application), '%d/%m/%Y'),
-    date_initiated = STR_TO_DATE(TRIM(date_initiated), '%d/%m/%Y');
-
-
+    date_initiated = STR_TO_DATE(TRIM(date_initiated), '%d/%m/%Y')
+ß
 -- Insert into Core Tables
 
 --  Farms
@@ -122,13 +122,12 @@ WHERE initiativeID IS NOT NULL; -- make sure initiativeID has a value
 -- Junction Tables
 
 -- Farm-Crop
--- needed to store the harvest and planting date of a crop which has to occur on a farm
 CREATE TABLE Farm_Crop (
+    farm_cropID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, -- surrogate auto increases with each new row
     farmID INT NOT NULL,
     cropID INT NOT NULL,
     planting_date DATE,
     harvest_date DATE,
-    PRIMARY KEY (farmID, cropID), -- composite primary key as 1 farm can have multiple crops and vice versa
     FOREIGN KEY (farmID) REFERENCES Farm(farmID),
     FOREIGN KEY (cropID) REFERENCES Crop(cropID)
 );
@@ -140,38 +139,34 @@ FROM Staging
 WHERE farmID IS NOT NULL AND cropID IS NOT NULL;
 
 -- Crop-Resource 
--- needed as 1 crop can have more than one resource used on it
--- also a single resource type can be applied to more than one type of crop - would be a m-m without this table
 CREATE TABLE Crop_Resource (
+    crop_resourceID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     cropID INT NOT NULL, 
     resourceID INT NOT NULL,
     resource_quantity DECIMAL(10,2),
-    date_of_application DATE NOT NULL, 
-    PRIMARY KEY (cropID, resourceID, date_of_application),
+    date_of_application DATE, 
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
     FOREIGN KEY (resourceID) REFERENCES Resource(resourceID)
 );
 
--- insert the data from the staging and resources tables
+-- insert the data from the staging and resources tables 
 INSERT INTO Crop_Resource (cropID, resourceID, resource_quantity, date_of_application)
 SELECT DISTINCT s.cropID, s.resourceID, s.resource_quantity, s.date_of_application
 FROM Staging s
-WHERE s.resourceID IS NOT NULL AND s.cropID IS NOT NULL AND s.date_of_application IS NOT NULL;
+WHERE s.resourceID IS NOT NULL AND s.cropID IS NOT NULL;
+
 
 -- Crop-Initiative 
-
--- needed as multiple crops use one initiative 
--- allows in future for multiple crops to be grown under one initiative
 CREATE TABLE Crop_Initiative ( 
+    crop_initiativeID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     cropID INT NOT NULL,
     initiativeID INT NOT NULL,
     crop_yield INT,
-    PRIMARY KEY (cropID, initiativeID),
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
     FOREIGN KEY (initiativeID) REFERENCES Initiative(initiativeID)
 );
 
--- insert the data from the staging and initiatives tables
+-- insert the data from the staging and initiatives tables 
 INSERT INTO Crop_Initiative (cropID, initiativeID, crop_yield)
 SELECT DISTINCT s.cropID, s.initiativeID, s.crop_yield
 FROM Staging s
@@ -179,23 +174,21 @@ WHERE s.cropID IS NOT NULL AND s.initiativeID IS NOT NULL;
 
 
 -- Farm-Initiative
--- needed as multiple farms can have multiple initiatives
--- allows in future for multiple farms to have one initiative
 CREATE TABLE Farm_Initiative (
+    farm_initiativeID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     initiativeID INT NOT NULL,
     farmID INT NOT NULL,
     date_initiated DATE,
     expected_impact VARCHAR(255),
     ev_score INT,
     water_source VARCHAR(255),
-    PRIMARY KEY (initiativeID, farmID),
     FOREIGN KEY (initiativeID) REFERENCES Initiative(initiativeID),
     FOREIGN KEY (farmID) REFERENCES Farm(farmID)
 );
 
--- insert the data from the staging and initiatives tables
+-- insert the data from the staging and initiatives tables 
 INSERT INTO Farm_Initiative (initiativeID, farmID, date_initiated, expected_impact, ev_score, water_source)
-SELECT DISTINCT -- Use DISTINCT to ensure only one setup record is created per farm/initiative
+SELECT DISTINCT 
     s.initiativeID,
     s.farmID,
     s.date_initiated,
@@ -206,16 +199,14 @@ FROM Staging s
 WHERE s.initiativeID IS NOT NULL 
   AND s.farmID IS NOT NULL;
 
--- Labour Table - to track labour hours associated with each farm, initiative, crop, and resource combination
+-- Labour Table
 CREATE TABLE Labour (
+    labourID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     farmID INT NOT NULL,
     initiativeID INT NOT NULL,
     cropID INT NOT NULL,
     resourceID INT NOT NULL, 
     labour_hours INT,
-    
-    PRIMARY KEY (farmID, initiativeID, cropID, resourceID),
-    
     FOREIGN KEY (farmID) REFERENCES Farm(farmID),
     FOREIGN KEY (initiativeID) REFERENCES Initiative(initiativeID),
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
