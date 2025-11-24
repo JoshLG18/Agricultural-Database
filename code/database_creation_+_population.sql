@@ -5,12 +5,12 @@ USE Agriculture; -- sets up the rest of the file to use that database
 
 SET GLOBAL local_infile = 1; -- allows the local file to be loaded into the database
 
--- Core Tables
+-- Table Creation
 
 -- Farm Table
 CREATE TABLE Farm ( -- creates a table called farm
     farmID INT NOT NULL PRIMARY KEY, -- creates a column called farmID that can't be empty and is the primary key
-    farm_Location VARCHAR(255) -- creates the farm location column which is a varchar of max length 255
+    farm_location VARCHAR(255) -- creates the farm location column which is a varchar of max length 255
 );
 
 -- Crops Table
@@ -27,7 +27,7 @@ CREATE TABLE Soil ( -- creates a table for soils data
     nitrogen_level INT, -- creates a column for nitrogen level
     phosphorus_level INT, -- creates a column for phosphorus level
     potassium_level INT, -- creates a column for potassium level
-    FOREIGN KEY (farmID) REFERENCES Farm(farmID), -- sets the farmID as a FK from the farm table as 1 farm has one soil type
+    FOREIGN KEY (farmID) REFERENCES Farm(farmID) -- sets the farmID as a FK from the farm table as 1 farm has one soil type
 );
 
 -- Resources table
@@ -44,7 +44,7 @@ CREATE TABLE Initiative ( -- creates a table to store initiative details
 
 -- Staging Table for Raw CSV
 CREATE TABLE Staging ( -- Create a temporary table to allow the data to be read it and split into its other tables easily
-    farmID INT,
+    farmID INT, -- has the same structure as the csv file
     farm_location VARCHAR(255),
     cropID INT,
     crop_name VARCHAR(255),
@@ -70,7 +70,10 @@ CREATE TABLE Staging ( -- Create a temporary table to allow the data to be read 
 );
 
 -- Load Data into Staging Table
--- Update this file path to match your local machine
+-- based on:
+-- https://dev.mysql.com/doc/refman/8.4/en/load-data.html
+
+-- Please update the file path to match your directory structure
 LOAD DATA LOCAL INFILE '/Users/joshlegrice/Desktop/University/Masters/Data Systems/Coursework/data/COMM108_Data_Coursework.csv'
 INTO TABLE Staging -- load the data from the above location into the temporary table
 FIELDS TERMINATED BY ',' -- defines the delimeter to seperate the columns by
@@ -78,7 +81,10 @@ OPTIONALLY ENCLOSED BY '"' -- ensures dates with slashes are read as strings not
 LINES TERMINATED BY '\n' -- defines where to start a new row in the file
 IGNORE 1 ROWS; -- ignores the header rows of the .csv 
 
--- Clean Dates -- changing the dates into the correct formats from strings
+-- Clean Dates -- changing the dates into the correct formats from strings - due to format in csv being dd/mm/yyyy
+-- based on:
+-- https://www.sqltutorial.org/sql-date-functions/sql-convert-string-to-date-functions/#:~:text=Convert%20string%20to%20date%20using%20CAST()%20function&text=In%20this%20syntax%2C%20the%20string,converts%20the%20string%20to%20date.#
+
 UPDATE Staging
 SET 
     -- convert strings to date format
@@ -86,12 +92,12 @@ SET
     harvest_date = STR_TO_DATE(TRIM(harvest_date), '%d/%m/%Y'),
     date_of_application = STR_TO_DATE(TRIM(date_of_application), '%d/%m/%Y'),
     date_initiated = STR_TO_DATE(TRIM(date_initiated), '%d/%m/%Y')
-ß
--- Insert into Core Tables
+
+-- Load data into main tables
 
 --  Farms
-INSERT INTO Farm (farmID, farm_Location) -- insert data into the farm table in farmID and farm_Location
-SELECT DISTINCT farmID, farm_location -- select the unique `farmID` and `farm_Location` from staging
+INSERT INTO Farm (farmID, farm_location) -- insert data into the farm table in farmID and farm_location
+SELECT DISTINCT farmID, farm_location -- select the unique `farmID` and `farm_location` from staging
 FROM Staging
 WHERE farmID IS NOT NULL; -- make sure farmID has a value
 
@@ -126,7 +132,7 @@ CREATE TABLE Farm_Crop (
     farm_cropID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, -- surrogate auto increases with each new row
     farmID INT NOT NULL,
     cropID INT NOT NULL,
-    planting_date DATE,
+    planting_date DATE, -- stores the temporal info about a crop on a farm
     harvest_date DATE,
     FOREIGN KEY (farmID) REFERENCES Farm(farmID),
     FOREIGN KEY (cropID) REFERENCES Crop(cropID)
@@ -143,7 +149,7 @@ CREATE TABLE Crop_Resource (
     crop_resourceID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     cropID INT NOT NULL, 
     resourceID INT NOT NULL,
-    resource_quantity DECIMAL(10,2),
+    resource_quantity DECIMAL(10,2), -- stores the instance info about a resource used on a crop
     date_of_application DATE, 
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
     FOREIGN KEY (resourceID) REFERENCES Resource(resourceID)
@@ -161,7 +167,7 @@ CREATE TABLE Crop_Initiative (
     crop_initiativeID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     cropID INT NOT NULL,
     initiativeID INT NOT NULL,
-    crop_yield INT,
+    crop_yield INT, -- stores the impact info about an initiative on a crop
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
     FOREIGN KEY (initiativeID) REFERENCES Initiative(initiativeID)
 );
@@ -178,7 +184,7 @@ CREATE TABLE Farm_Initiative (
     farm_initiativeID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     initiativeID INT NOT NULL,
     farmID INT NOT NULL,
-    date_initiated DATE,
+    date_initiated DATE, -- stores the info about when an initiative was started on a farm and its impacts
     expected_impact VARCHAR(255),
     ev_score INT,
     water_source VARCHAR(255),
@@ -206,7 +212,7 @@ CREATE TABLE Labour (
     initiativeID INT NOT NULL,
     cropID INT NOT NULL,
     resourceID INT NOT NULL, 
-    labour_hours INT,
+    labour_hours INT, -- stores the labour hours associated with each farm, initiative, crop, and resource
     FOREIGN KEY (farmID) REFERENCES Farm(farmID),
     FOREIGN KEY (initiativeID) REFERENCES Initiative(initiativeID),
     FOREIGN KEY (cropID) REFERENCES Crop(cropID),
@@ -230,3 +236,56 @@ WHERE s.labour_hours IS NOT NULL
 
 -- drop the staging table
 DROP TABLE Staging; -- drops the staging table as it is not needed anymore, avoid redundancy
+
+
+-- Test Queries
+
+-- Query 1: Get all crops grown on a specific farm with planting dates
+SELECT f.farm_location, c.crop_name, fc.planting_date, fc.harvest_date
+FROM Farm f
+JOIN Farm_Crop fc ON f.farmID = fc.farmID
+JOIN Crop c ON fc.cropID = c.cropID
+WHERE f.farmID = 1;
+
+-- Query 2: Calculate total resource usage by crop type
+SELECT c.crop_name, r.resource_type, 
+       SUM(cr.resource_quantity) as total_quantity
+FROM Crop c
+JOIN Crop_Resource cr ON c.cropID = cr.cropID
+JOIN Resource r ON cr.resourceID = r.resourceID
+GROUP BY c.crop_name, r.resource_type
+ORDER BY c.crop_name;
+
+-- Query 3: Analyze initiative impact on crop yields
+SELECT i.initiative_description, c.crop_name, 
+       AVG(ci.crop_yield) as avg_yield
+FROM Initiative i
+JOIN Crop_Initiative ci ON i.initiativeID = ci.initiativeID
+JOIN Crop c ON ci.cropID = c.cropID
+GROUP BY i.initiative_description, c.crop_name;
+
+-- Query 4: Farm environmental scores with initiatives
+SELECT f.farm_location, i.initiative_description, 
+       fi.ev_score, fi.expected_impact
+FROM Farm f
+JOIN Farm_Initiative fi ON f.farmID = fi.farmID
+JOIN Initiative i ON fi.initiativeID = i.initiativeID
+ORDER BY fi.ev_score DESC;
+
+-- Query 5: Labour analysis
+SELECT f.farm_location, c.crop_name, r.resource_type, 
+       i.initiative_description, l.labour_hours
+FROM Labour l
+JOIN Farm f ON l.farmID = f.farmID
+JOIN Crop c ON l.cropID = c.cropID
+JOIN Resource r ON l.resourceID = r.resourceID
+JOIN Initiative i ON l.initiativeID = i.initiativeID
+ORDER BY l.labour_hours DESC;
+
+-- Query 6: Soil health analysis by farm
+SELECT f.farm_location, s.ph_level, s.nitrogen_level, 
+       s.phosphorus_level, s.potassium_level
+FROM Farm f
+JOIN Soil s ON f.farmID = s.farmID
+WHERE s.ph_level < 7.0 -- acidic soil
+ORDER BY s.ph_level;
