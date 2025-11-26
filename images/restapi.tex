@@ -1,0 +1,56 @@
+\renewcommand{\arraystretch}{1.6} 
+\begin{table}[H]
+\centering
+\caption{RESTful API Endpoint Definitions}
+\vspace{-1em}
+\label{tab:api-endpoints}
+\scriptsize	
+\begin{tabular}{@{}llp{5cm}p{3.5cm}p{4cm}@{}} 
+\toprule
+\textbf{Method} & \textbf{Endpoint} & \textbf{Parameters} & \textbf{Description} & \textbf{Response} \\
+\midrule
+
+GET & \texttt{/:table} & 
+\textbf{Query:} \texttt{limit} (int), \texttt{offset} (int), \texttt{sort\_by} (string), \texttt{order} (asc|desc) & 
+Retrieves all records from specified table with pagination and sorting. & 
+200 OK: JSON array \\
+
+GET & \texttt{/:table/:id} & 
+\textbf{Path:} \texttt{:id} (int) — primary key & 
+Retrieves single record by primary key. Returns empty if not found. & 
+200 OK: JSON object | 404 Not Found \\
+
+POST & \texttt{/:table} & 
+\textbf{Body:} JSON object matching table schema. Example for Farm: \texttt{\{"farm\_location": "string"\}} & 
+Creates new record with provided column-value pairs. & 
+201 Created: JSON \texttt{\{ok, rowsAffected\}} | 400 Bad Request \\
+
+PUT & \texttt{/:table/:id} & 
+\textbf{Path:} \texttt{:id} (int) \newline
+\textbf{Body:} Complete JSON object with all table fields & 
+Full record replacement. All fields must be provided. & 
+200 OK | 404 Not Found | 400 Bad Request \\
+
+PATCH & \texttt{/:table/:id} & 
+\textbf{Path:} \texttt{:id} (int) \newline
+\textbf{Body:} Partial JSON object with only fields to update & 
+Partial update. Only specified fields modified. & 
+200 OK | 404 Not Found | 400 Bad Request \\
+
+DELETE & \texttt{/:table/:id} & 
+\textbf{Path:} \texttt{:id} (int) & 
+Deletes record by primary key. & 
+200 OK: \texttt{\{ok, message\}} | 404 Not Found \\
+
+POST & \texttt{/query} & 
+\textbf{Body:} \texttt{\{"sql": "SELECT ... FROM ..."\}} \newline
+\textbf{Restriction:} SELECT-only queries permitted & 
+Executes read-only SELECT queries, others blocked for security. & 
+200 OK: JSON array | 400 Bad Request | 403 Forbidden \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+\renewcommand{\arraystretch}{1}  % Reset to normal after table
+
+

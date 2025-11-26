@@ -75,7 +75,7 @@ app.get("/", (req, res) => { // base endpoint at /
 
 // Full query request - only allows SELECT statements
 app.post("/query", async (req, res) => {
-  const sqlQuery = req.body && req.body.sql; // get the SQL from the front end body
+  const sqlQuery = req.body && req.body.sql; // get the SQL from the frontend body
   // return an error if there is no SQL provided
   if (!sqlQuery) return res.status(400).json({ error: "Missing 'sql' in body" });
 
@@ -310,3 +310,6 @@ connectToDb().then(() => {
 // https://www.youtube.com/watch?v=Uvy_BlgwfLI
 // https://www.youtube.com/watch?v=XJpYH7K7TGM
 // https://learn.microsoft.com/en-us/azure/azure-sql/database/connect-query-nodejs?view=azuresql&tabs=macos
+// https://www.npmjs.com/package/mssql
+// https://expressjs.com/en/4x/api.html#app
+// https://www.w3schools.com/js/

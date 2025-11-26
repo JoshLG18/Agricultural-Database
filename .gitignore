@@ -1,1 +1,7 @@
 Report.synctex.gz
+node_modules/
+/backend/.env
+/code/.env
+node_modules/
+/research
+

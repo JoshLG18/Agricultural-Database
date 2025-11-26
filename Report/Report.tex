@@ -6,85 +6,385 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{lipsum}
+\usepackage{cite}
+\usepackage{setspace}
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage{caption}
 
 \graphicspath{{../images/}}
 \pagestyle{fancy}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0pt}
 \setlength{\headheight}{40pt} 
-\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[a4paper,top=1.75cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=1.75cm]{geometry}
 
 \begin{document}
 
 %-------------------------------------------------------%
 
 \title{\bf Designing Sustainable Agriculture Databases: Relational and Document-Based Approaches}
-\author{Josh Le Grice - 720017170}
-\date{}
+\author{Student Number - 720017170}
+\date{\today}
 \maketitle
 \thispagestyle{fancy}
 
-
+\vspace{-3em}
 %-------------------------------------------------------%
 \section{Introduction}
-Introduce the need for this database and why it is helpful for agricultural businesses.
+
+\vspace{-0.5em}
+
+This report describes the design, implementation, and analysis of a data system which
+stores UK agricultural sustainability initiatives. 
+An efficient and reliable database is developed to store and analyse 
+the performance of sustainability initiatives across UK farms.
+
+\vspace{0.25em}
+
+\textbf{The project discusses four key sections:}
+
+\vspace{-0.5em}
+
+\begin{itemize}
+\item \textbf{Relational Database Design:} A relational database design adhering to
+the third normal form ($\text{3NF}$), as well as an entity relationship diagram ($\text{ERD}$),
+supported by detailed design rationale.
+
+\vspace{-0.4em}
+
+\item \textbf{Database Implementation:} An outline and \texttt{.sql} script, implemented in MySQL.
+The script is used to create and populate the database tables from raw, unnormalized data.
+
+\vspace{-0.4em}
+
+\item \textbf{RESTful API Design \& Implementation:} The design and implementation
+of a RESTful API that allows for data access and modification within the database,
+including all endpoints and their functions.
+
+\vspace{-0.4em}
+
+\item \textbf{Alternative Design:} An alternative design using a document-based NoSQL
+database model and a comparison with a relational approach, considering the trade-offs in scalability, 
+data integrity, flexibility, and performance.
+
+\end{itemize}
+
+\vspace{-2em}
 
 %-------------------------------------------------------%
 \section{Database Design}
 
-Define the tables needed.
-- Farm
-- Crops
-- Soils
-- Resources
-- Sustainability Initiatives
+\vspace{-0.75em}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{DatabaseDiagram}
-\caption{Entity Relationship Diagram of the Agriculture Database}
+The database was designed to 3NF, where the key considerations were data integrity, reducing redundancy, 
+and ensuring efficient data retrieval; all of which are important for designing
+production-level databases\cite{Connolly2014-tc}.
+
+\vspace{-1em}
+
+\subsection{Design Rationale}
+
+\vspace{-0.5em}
+
+The aim of the design was to remove all data redundancy and inconsistencies. 
+This was achieved by ensuring all non-key attributes are fully dependent only on the
+primary key of that table with no transitive dependencies\cite{Connolly2014-tc}. By adhering to 3NF, the design
+will eliminate update, insertion, and deletion errors, which in turn increasing consistency and 
+accuracy\cite{Connolly2014-tc}.
+
+\vspace{-1em}
+
+\subsection{Normalisation and Referential Integrity}
+
+\vspace{-0.5em}
+
+The design process began by considering first and second normal forms (1NF, 2NF). 
+The raw data was processed to ensure 1NF by guaranteeing that each row and column contains 
+only a single value, and all duplicate groups were removed\cite{Connolly2014-tc}. To achieve 2NF, 
+each non-primary key attribute was made fully dependent on only the primary key of its table\cite{Connolly2014-tc}.
+For example, attributes such as crop\_name and resource\_type were dependent only on 
+their tables primary keys, not on any other records. Consequently, descriptive tables (Crop, Resource), 
+which stored each value only once, were created to eliminate repeated data storage\cite{Connolly2014-tc}.
+
+Several junction tables were created to implement 3NF, as all transitive
+dependencies must be removed\cite{Connolly2014-tc}. For instance, the Farm\_Crop table resolves the many-to-many relationship 
+between farms and crops, ensuring temporal attributes (planting\_date, harvest\_date) that are 
+specific to each farm's growing of a crop, are accurately recorded. The Crop\_Resource table captures
+the relationship between crops and resources, storing when each resource was applied to a crop and in what quantity. 
+
+To enable the analysis of initiative impact on crop performance,
+Crop\_Initiative was designed to link crops to their respective sustainability initiative. 
+Also, the Farm\_Initiative table consolidates the relationship between farms and 
+initiatives, storing initiative-specific metrics for each farm (date\_initiated, 
+expected\_impact, ev\_score, water\_source). This allows the same initiative to be tracked 
+separately across different farms, with potentially different values per farm\cite{Connolly2014-tc}.
+
+Labour hours are captured in the Labour table using the unique combination of farm, crop, resource,
+and initiative. The combination is necessary because labour requirements are dependent on which 
+resources are applied to a specific crop on a farm that is using a particular initiative.
+
+Finally, all junction tables use surrogate primary keys for efficient 
+indexing, while foreign key constraints enforce referential integrity and prevent data 
+inconsistency across the database.
+
+\vspace{-1em}
+
+\subsection{Entity Relationship Diagram (ERD)}
+
+\vspace{-1em}
+
+\begin{figure}[H]
+    \includegraphics[width=1\textwidth]{../images/E-R.pdf}
+    \vspace{-1.75em}
+    \caption{Normalised (3NF) Entity Relationship Diagram}
+    \label{fig:erd}
 \end{figure}
 
+\vspace{-1.5em}
 %-------------------------------------------------------%
 \section{SQL Implementation}
 
-Talk about how it is implemented in SQL
+\vspace{-0.5em}
+
+Section 3 discusses the processes taken to develop the database within MySQL from the E-R diagram
+in Figure~\ref{fig:erd}, with more detailed implementation and SQL provided in the accompanying 
+\texttt{.sql} script.
+
+\vspace{-1em}
+
+\subsection{Database Configuration}
+
+\vspace{-0.5em}
+
+First, a new database environment was created within MySQL Workbench, making sure the database implementation is clean 
+and reproducible. The process removes any previous version of the database in that environment. Following this, 
+the database can be created using the \texttt{CREATE DATABASE} command. To allow file population from the 
+CSV provided, local file loading is enabled. The specific set up guarantees that the database is reproducible from a 
+blank baseline so that all future commands work within the environment.
+
+\vspace{-1em}
+
+\subsection{Table Creation}
+
+\vspace{-0.5em}
+
+After the database was created and configured, tables were created to store each record.
+Initially, descriptive tables were created to contain data that only related to Farms, Soils, Crops, 
+Initiatives and Resources. Junction tables also were defined in order to facilitate many-to-many 
+relationships as well as store instance specific attributes. These included Farm\_Crop, Crop\_Resource,
+Crop\_Initiative, Farm\_Initiative, and Labour. Each table was created with appropriate primary keys, foreign keys 
+and constraints to ensure data integrity. 
+
+\vspace{-1em}
+
+\subsection{Data Loading and Cleaning}
+
+\vspace{-0.5em}
+
+First, the raw data provided was loaded into a staging table using the MySQL \texttt{LOAD DATA INFILE} command.
+The staging table mirrors the structure of the raw CSV file, ensuring a clean import, as well as providing a 
+location for data cleaning. Once within the staging table, certain columns required cleaning
+to ensure compatibility with the final database schema. Cleaning included standardising date formats, due to 
+formatting inconsistencies resulting from loading.
+
+After cleaning, the data was then inserted into the schema using \texttt{INSERT INTO ... SELECT} statements.
+These statements extract the relevant data from the staging table, and load it into
+the final schema. The cleaning process meant that all data in the final tables adhered to the defined structure
+and integrity constraints of the database schema. After population, the database was tested with various queries to 
+validate the design and implementation, all shown at the end of the \texttt{.sql} script.
+
+\vspace{-1em}
+
+\subsection{Cloud Extension}
+
+\vspace{-0.5em}
+
+Beyond the core requirements, the database was set up in a cloud environment using Microsoft Azure's SQL Database 
+service. This involved creating a new SQL schema within Azure using MSSQL. The existing \texttt{.sql} script was adapted 
+to be compatible with Azure's SQL syntax and features. A Python script was developed to automate the data loading
+process into the Azure database, ensuring that the data could be efficiently and accurately populated
+in the cloud environment. The cloud implementation facilitates RESTful API access.
+
+\vspace{-1em}
 
 %-------------------------------------------------------%
 \section{RESTful API Design}
 
-How the API is created, the commands needed and what tehy will get
-Also, include link to the working app
+\vspace{-0.5em}
+
+\subsection{Design}
+
+\vspace{-0.5em}
+
+To allow the database to be accessible from other applications, a RESTful API was designed to facilitate 
+data access and modification. The API uses standard HTTP methods (GET, POST, PUT, PATCH, DELETE) which perform
+CRUD operations within the database\cite{SelvarajSivaraj2024ItA}.
+
+The design utilises generic endpoints, shown in Table~\ref{tab:api-endpoints}, able to access and manipulate data across
+all tables. For example, \texttt{GET /:table/:id} gives access to all data from
+any table by specifying the table name and an optional record ID, implementing request flexibility along with code 
+reusability and simplicity during implementation.
+The generic approach does sacrifice some specificity and optimisation that more tailored endpoints may achieve. 
+The \texttt{/query} endpoint permits custom SQL queries, providing flexibility to data analysts.
+Flexibility reduces constraints caused by predefined endpoints. Letting users enter custom SQL could 
+introduce security risks if not properly managed; however, security considerations can be mitigated by 
+restricting access to read-only queries and implementing access control.
+
+In a production environment, additional tailored endpoints could be implemented for frequently accessed 
+resources, such as \texttt{GET /farms/{farmID}/environmental-score} to retrieve sustainability metrics 
+for specific farms, or \texttt{GET /crops/{cropID}/yield} to access crop performance data. 
+These would optimise performance for common use cases while the generic endpoints provide flexibility for 
+ad-hoc analysis.
+
+All data is exchanged in JSON format, which is widely used and supported across various programming 
+languages and platforms\cite{SelvarajSivaraj2024ItA}. The design along with concise error codes and messages, 
+makes the API user-friendly and accessible for developers interacting with the agricultural database.
+
+\vspace{-1em}
+
+\input{../images/restapi.tex}
+
+\vspace{-2.5em}
+
+\subsection{Implementation Extension}
+
+\vspace{-0.5em}
+
+To extend the coursework and validate my design, I developed the RESTful API using Node.js, Express and MSSQL to
+access and query the cloud database. The API implements all the designed endpoints outlined in Section 4.1, and is
+hosted on Azure App Service, providing a scalable and reliable platform for deployment.
+The deployed API can be accessed at: 
+\url{http://agriculture-api-jlg-g2gffahdgxfqc6b3.swedencentral-01.azurewebsites.net/} and the interface
+is available at: \url{https://joshlg18.github.io/Agricultural-Database/}.
+
+\vspace{-1em}
 
 %-------------------------------------------------------%
-\section{Document Based Design Implmentation}
+\section{Document Based Design Implementation}
 
-Evaluate the limitaions of the Relational design and propose the document based approach using mongodb, could implement if have time.
+\vspace{-0.5em}
+
+\subsection{Limitations of Relational Models}
+
+\vspace{-0.5em}
+
+The relational database model maintains data integrity and structured querying capabilities; however
+it can introduce issues in scenarios requiring high flexibility and scalability\cite{Connolly2014-tc}.
+
+Relational databases struggle with handling unstructured or semi-structured data\cite{alma991016914362807446}, which is 
+becoming more common especially in the agricultural context where satellite images and sensor data may be involved.
+The rigid nature of relational schemas makes it difficult to adapt to evolving data
+requirements without significant schema restructuring\cite{Connolly2014-tc}.
+
+The limitations described emphasise the need to explore alternative database designs such as NoSQL document-based models,
+which are built for greater flexibility and scalability\cite{alma991016914362807446}.
+  
+\vspace{-0.5em}
+
+\subsection{Alternative NoSQL Design}
+
+\vspace{-0.5em}
+
+To overcome the constraints of the relational model, a document-based NoSQL database design could be introduced.
+NoSQL approaches focus on flexibility and scalability\cite{alma991016914362807446}, making it well suited for handling unstructured
+and semi-structured data. Within this database, collections would contain key entities relating
+to farms, crops, resources, and initiatives, stored in JSON or BSON format, supporting nested structures and arrays.
+
+Instead of relying on joins between tables through relationships, documents would embed related data within them.
+For example, a farm document could contain an array of crop documents, each with its own set of resources and 
+initiatives.  The denormalised approach reduces the need for complex joins, improving read performance and simplifying 
+data retrieval\cite{alma991016914362807446}, but can have some limitations presented in Section 5.3. 
+Example collections are shown in Figure~\ref{fig:nosql-docs}.
+
+\vspace{-0.5em}
+
+\begin{figure}[H]
+\centering
+\footnotesize
+
+\begin{minipage}{0.5\linewidth}
+\begin{verbatim}
+Farm data is stored within a farm collection as:
+{
+  "farmID": "1",
+  "farm_location": "South Farm, Kent",
+  "crops": [
+    {
+      "cropID": "101",
+      "crop_name": "Wheat",
+      "resources": [{ "resourceID": "1" }],
+      "initiatives": [{ "initiativeID": "1" }]
+    }
+  ]
+}
+Initiative data is stored within an initiative collection as:
+{
+  "initiativeID": "1",
+  "description": "Organic Farming"
+}
+\end{verbatim}
+\end{minipage}
+
+\vspace{-1em}
+
+\caption{Example NoSQL Document Structure for Farm and Initiative Collections}
+\label{fig:nosql-docs}
+\end{figure}
+
+
+\vspace{-2.5em}
+
+\subsection{Comparative Analysis}
+
+\vspace{-0.5em}
+
+While the NoSQL document-based design provides improvements in flexibility and scalability, it can introduce challenges
+compared to the relational approach. The relational model relies on vertical scaling, by enhancing the capacity of a 
+single server, which could be more straightforward for smaller datasets and simpler applications. In contrast, 
+NoSQL databases are horizontally scalable, with the ability to distribute data across multiple 
+servers\cite{alma991016914362807446}. The NoSQL implementation enables nearly
+constant growth, making it suitable for deployment in the event the scale of the agricultural system expands. 
+
+However, the denormalised structure of NoSQL databases can lead to data redundancy and potential inconsistencies, 
+as related data can be duplicated across multiple documents\cite{alma991016914362807446}. Duplication can complicate 
+data management, especially when updates are required. For example, if a farm changed name or an initiative altered 
+its description, that data will need to be altered across multiple documents. In contrast, within relational databases 
+these changes can occur in a single location, the Farm or Initiative table respectively, improving 
+consistency\cite{Connolly2014-tc}.
+
+Schema flexibility presents another important consideration between the two approaches. Document-based databases 
+can have dynamic schemas, meaning that different documents can have different data types and 
+structures\cite{alma991016914362807446}. Conversely, relational databases require a fixed schema, which provides structure and consistency 
+but can be less adaptable to alterations\cite{Connolly2014-tc}, which may be important if data requirements shift e.g.
+a farm needed to store unstructured data or additional attributes.
+
+Performance also needs to be considered when weighing up the two approaches. 
+Relational databases can excel in complex queries and transactions due to their structured nature and support 
+for SQL\cite{Connolly2014-tc}. NoSQL databases, on the other hand, provide superior performance for read-heavy 
+workloads and large-scale data retrievals, as they are designed to handle high volumes of unstructured 
+data efficiently\cite{alma991016914362807446}.
+
+The choice between approaches can be dependent on the data and project requirements. For the current agricultural 
+system, the relational model is more suitable because the data has stable, well-defined structures.
+The system's primary use case involves complex analytical queries across multiple entities, which relational
+databases handle efficiently. However, if the system were to migrate towards handling high-volume, potentially 
+unstructured data e.g. sensors or images, transitioning to a NoSQL approach may become 
+advantageous.
+
+\vspace{-0.5em}
 
 %-------------------------------------------------------%
-\section{Conclusions}
 
-Summarise key takeways
-
-%-------------------------------------------------------%
-% Figures and tables
-\clearpage
-
-%-------------------------------------------------------%
-\clearpage
 % Include your references here.
-\bibliographystyle{plain}
-\bibliography{references}
+\begin{spacing}{0.5}
+    \bibliographystyle{IEEEtran}
+    \bibliography{../references/references}
+\end{spacing}
 
-%-------------------------------------------------------%
-
-%-------------------------------------------------------%
-\clearpage
-% Include your appendix here, if necessary.
-% \section*{Appendix}
-% % Appendix (optional, unlimited)
-% % Code snippets, supplementary figures, tables, or additional materials.
-% % Will not be marked but can provide supporting evidence.
+\vspace{-1em}
 
 %-------------------------------------------------------%
 \end{document}
